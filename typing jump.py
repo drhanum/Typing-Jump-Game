@@ -5,7 +5,7 @@ pygame.init()
 # Display
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Word Jump - IMAGE ONLY - NO ROAD")
+pygame.display.set_caption("TYPING JUMP")
 clock = pygame.time.Clock()
 
 # Warna
@@ -13,6 +13,8 @@ WHITE = (255, 255, 255)
 GREEN = (0, 200, 80)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
 
 # Font
 def load_comic_font(size):
@@ -33,14 +35,14 @@ def render_text_outline(font_obj, text, inner_color, outline_color=BLACK, thickn
 font = load_comic_font(36)
 small_font = load_comic_font(20)
 
-scroll_speed = 2
+scroll_speed = 5
 jumping = False
 vx, vy = 0, 0
 jump_target = None
 
 # Platform
 PLATFORM_W, PLATFORM_H = 250, 80
-platform_img = pygame.image.load("project UAS/platform.png").convert_alpha()
+platform_img = pygame.image.load("platform.png").convert_alpha()
 platform_img = pygame.transform.scale(platform_img, (PLATFORM_W, PLATFORM_H))
 
 def generate_platforms(n=6, start_y=HEIGHT-150):
@@ -58,24 +60,17 @@ def generate_platforms(n=6, start_y=HEIGHT-150):
         })
     return plats
 
-# Ground
+# BackGround
 GROUND_HEIGHT = 80
-background_img = pygame.image.load("project UAS/background.jpg").convert_alpha()
+background_img = pygame.image.load("background.jpg").convert_alpha()
 background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
 
 # Player
 PLAYER_W, PLAYER_H = 80, 80
-player_img = pygame.image.load("project UAS/hamster.png").convert_alpha()
+player_img = pygame.image.load("hamster.png").convert_alpha()
 player_img = pygame.transform.scale(player_img, (PLAYER_W, PLAYER_H))
 player = pygame.Rect(WIDTH//2, HEIGHT - 100, 50, 50)
 gravity = 0.6
-
-# Game state
-score = 0
-lives = 3
-game_over = False
-typed_word = ""
-saved_score_this_run = False
 
 # Leaderboard
 LEADERBOARD_FILE = "leaderboard.txt"
@@ -117,10 +112,6 @@ word_list = [
     'duri','jaket','riang','siang','angsa','sapi','pinjam','jam','jambu','buah','renaldi'
 ]
 
-platforms = generate_platforms()
-current_index = 0
-load_leaderboard()
-
 def reset_game():
     global player, score, lives, game_over, typed_word, platforms
     global current_index, jumping, vx, vy, jump_target, saved_score_this_run
@@ -138,6 +129,54 @@ def reset_game():
     current_index = 0
     saved_score_this_run = False
 
+def draw_start_screen():
+    # Semi-transparent box
+    box = pygame.Surface((450, 350), pygame.SRCALPHA)
+    box.fill((135, 206, 235, 120))
+    screen.blit(box, (WIDTH//2 - 225, HEIGHT//2 - 175))
+
+    title = render_text_outline(font, "TYPING JUMP", YELLOW)
+    screen.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 155))
+
+    # Username label
+    label = small_font.render("Username:", True, BLACK)
+    screen.blit(label, (WIDTH//2 - 180, HEIGHT//2 - 80))
+
+    # Username input box
+    input_box = pygame.Rect(WIDTH//2 - 150, HEIGHT//2 - 50, 300, 40)
+    pygame.draw.rect(screen, WHITE, input_box, border_radius=10)
+    pygame.draw.rect(screen, BLACK, input_box, 3, border_radius=10)
+
+    username_text = small_font.render(username_input, True, BLACK)
+    screen.blit(username_text, (input_box.x + 10, input_box.y + 8))
+
+    # Play button
+    play_btn = pygame.Rect(WIDTH//2 - 100, HEIGHT//2 + 40, 200, 60)
+    pygame.draw.rect(screen, (255, 180, 40), play_btn, border_radius=15)
+    pygame.draw.rect(screen, (200, 120, 0), play_btn, 4, border_radius=15)
+
+    play_txt = render_text_outline(font, "Play", WHITE)
+    screen.blit(play_txt, (
+        play_btn.centerx - play_txt.get_width()//2,
+        play_btn.centery - play_txt.get_height()//2
+    ))
+
+    return play_btn
+
+# Game state
+score = 0
+lives = 3
+game_over = False
+typed_word = ""
+saved_score_this_run = False
+platforms = generate_platforms()
+current_index = 0
+load_leaderboard()
+show_start_screen = True
+username_input = ""
+active_username = False
+
+# Main loop
 running = True
 while running:
     screen.blit(background_img, (0, 0))
@@ -148,9 +187,40 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if show_start_screen:
+                mx, my = event.pos
+                play_btn = pygame.Rect(WIDTH//2 - 100, HEIGHT//2 + 40, 200, 60)
+
+                if play_btn.collidepoint(mx, my) and username_input.strip() != "":
+                    show_start_screen = False
+                    reset_game()
+                continue
+
 
         elif event.type == pygame.KEYDOWN:
 
+            if show_start_screen:
+                # ENTER → Mulai game
+                if event.key == pygame.K_RETURN and username_input.strip() != "":
+                    show_start_screen = False
+                    reset_game()
+                    continue
+
+                # Backspace
+                if event.key == pygame.K_BACKSPACE:
+                    username_input = username_input[:-1]
+                    continue
+
+                # Mengetik
+                if len(event.unicode) == 1 and len(username_input) < 12:
+                    if event.unicode.isalnum() or event.unicode in "_-":
+                        username_input += event.unicode
+
+                continue
+
+            
             if game_over:
                 if event.key == pygame.K_r:
                     reset_game()
@@ -199,7 +269,9 @@ while running:
                     else:
                         active["colors"][i] = WHITE
 
-    if not game_over:
+    if show_start_screen:
+        draw_start_screen()
+    elif not game_over:
         if jumping and jump_target:
             player.centerx += vx
             player.bottom += vy
