@@ -78,23 +78,31 @@ leaderboard = []
 
 def load_leaderboard():
     global leaderboard
+    leaderboard = []
     try:
         with open(LEADERBOARD_FILE, "r") as f:
-            lines = f.readlines()
-        leaderboard = [int(x.strip()) for x in lines if x.strip().isdigit()]
-        leaderboard.sort(reverse=True)
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) >= 2:
+                    name = " ".join(parts[:-1])
+                    score = int(parts[-1])
+                    leaderboard.append((name, score))
+
+        leaderboard.sort(key=lambda x: x[1], reverse=True)
         leaderboard = leaderboard[:10]
+
     except:
         leaderboard = []
 
 def save_leaderboard():
     with open(LEADERBOARD_FILE, "w") as f:
-        for s in leaderboard:
-            f.write(str(s) + "\n")
+        for name, score in leaderboard:
+            f.write(f"{name} {score}\n")
 
-def add_score(sc):
-    leaderboard.append(sc)
-    leaderboard.sort(reverse=True)
+
+def add_score(name, sc):
+    leaderboard.append((name, sc))
+    leaderboard.sort(key=lambda x: x[1], reverse=True)
     del leaderboard[10:]
     save_leaderboard()
 
@@ -229,7 +237,8 @@ while running:
                 continue
 
             if event.key == pygame.K_BACKSPACE:
-                typed_word = typed_word[:-1]
+                # typed_word = typed_word[:-1]
+                continue
 
             elif event.key == pygame.K_RETURN:
                 typed_clean = typed_word.strip().lower()
@@ -255,7 +264,7 @@ while running:
                     if lives <= 0:
                         game_over = True
                         if not saved_score_this_run:
-                            add_score(score)
+                            add_score(username_input, score)
                             saved_score_this_run = True
 
                 typed_word = ""
@@ -311,9 +320,10 @@ while running:
         screen.blit(lbl, (WIDTH//2 - lbl.get_width()//2, HEIGHT//2 - 50))
 
         y = HEIGHT//2
-        for i, s in enumerate(leaderboard):
-            t = render_text_outline(small_font, f"{i+1}. {s}", WHITE)
-            screen.blit(t, (WIDTH//2 - 40, y + i*28))
+        for i, (name, s) in enumerate(leaderboard):
+            t = render_text_outline(small_font, f"{i+1}. {name} - {s}", WHITE)
+            screen.blit(t, (WIDTH//2 - 120, y + i*28))
+
 
         inst = render_text_outline(small_font, "Press R to Restart or Q to Quit", WHITE)
         screen.blit(inst, (WIDTH//2 - inst.get_width()//2, HEIGHT - 60))
