@@ -49,7 +49,7 @@ def generate_platforms(n=6, start_y=HEIGHT-150):
     plats = []
     side = "left"
     for i in range(n):
-        y = start_y - i*150
+        y = start_y - i*120
         word = random.choice(word_list)
         x = 100 if side == "left" else WIDTH - PLATFORM_W - 100
         side = "right" if side == "left" else "left"
@@ -116,8 +116,8 @@ def reset_game():
     global player, score, lives, game_over, typed_word, platforms
     global current_index, jumping, vx, vy, jump_target, saved_score_this_run
 
-    player.x = WIDTH//4
-    player.y = HEIGHT - 100 - PLAYER_H
+    player.x = WIDTH//2
+    player.y = HEIGHT - GROUND_HEIGHT #diatas ranting
     score = 0
     lives = 3
     game_over = False
